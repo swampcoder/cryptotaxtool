@@ -66,6 +66,7 @@ public class USDTable implements IPriceInterface {
       Double value = priceInMap.get(key);
       if (value == null && queryIfNotFound) {
          value = Utils.queryPriceInUSD(coin, time);
+         Utils.sleep(150); // sleep to prevent rate limit 
          if (value == null)
             return null;
          String csv = key + "," + df.format(value) + "\n";
