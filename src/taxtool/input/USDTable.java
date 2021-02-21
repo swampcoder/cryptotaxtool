@@ -33,7 +33,7 @@ public class USDTable implements IPriceInterface {
       initTable();
    }
    
-   public double getPriceInUSD(Currency currency, long timeOf) 
+   public Double getPriceInUSD(Currency currency, long timeOf) 
    {
       String key = currency.name() + "," + timeOf;
       return priceInMap.get(key);
@@ -50,6 +50,10 @@ public class USDTable implements IPriceInterface {
             if (csv[2].contains("E"))
                continue;
             Double v = Double.parseDouble(csv[2]);
+            if(v.doubleValue() == 0d) {
+               System.out.println("Ignoring 0 USD price for=" + line);
+               continue;
+            }
             priceInMap.put(key, v);
          } catch (Exception e) {
             // ignore for now
@@ -67,8 +71,19 @@ public class USDTable implements IPriceInterface {
       if (value == null && queryIfNotFound) {
          value = Utils.queryPriceInUSD(coin, time);
          Utils.sleep(150); // sleep to prevent rate limit 
-         if (value == null)
+         if (value == null || value.doubleValue() == 0d)
+         {
+            
+            // try to find in terms of btc then btc to USD
+            Double btcPrice = Utils.queryPriceInBTC(coin,time);
+            Double btcUsdPrice = Utils.queryPriceInUSD("BTC", time);
+            if(btcPrice != null && btcUsdPrice != null) 
+            {
+               System.out.println("Division/Calc COIN=" + coin + "   BTC price=" + btcPrice + "   BTC/USD=" + btcUsdPrice);
+            }
             return null;
+         }
+         
          String csv = key + "," + df.format(value) + "\n";
          Files.write(USD_FILE.toFile().toPath(), csv.getBytes(), StandardOpenOption.APPEND, StandardOpenOption.CREATE);
          priceInMap.put(key, value);

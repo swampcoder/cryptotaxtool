@@ -21,6 +21,7 @@ public class CryptoRecord implements Comparable<CryptoRecord> {
    private RecordSource source = null;
    private int recordIndex = -1;
    private long time = -1L;
+   private int recordYear = -1;
    private String coinOrCoinIn = null;
    private Double coinInInUsd = null;
    private String coinOut = null;
@@ -32,7 +33,8 @@ public class CryptoRecord implements Comparable<CryptoRecord> {
    private Double btcPriceInUSD = null; // could be indicated in coinbase CSV directly 
    private CryptoRecordNote recordData = null;
    private List<String> vectorLine;
-   private String rawLine = null;
+   private String rawLine = null; // raw csv line parsed from file
+   private String calcNotes = null; // attach any notes to record for debug inspection 
    private String crowdsale = null;
    private final Map<String,Double> totalsMap = new HashMap<String,Double>();
    private String exchange = null;
@@ -105,6 +107,15 @@ public class CryptoRecord implements Comparable<CryptoRecord> {
    {
       if(time < 0) throw new IllegalArgumentException("invalid time value");
       this.time = time;
+      Calendar c = Calendar.getInstance();
+      c.setTimeZone(TimeZone.getTimeZone("UTC"));
+      c.setTimeInMillis(time);
+      recordYear = c.get(Calendar.YEAR);
+   }
+   
+   public int getRecordYear() 
+   {
+      return recordYear;
    }
    
    @Override
@@ -116,6 +127,16 @@ public class CryptoRecord implements Comparable<CryptoRecord> {
    public String getCoinOrCoinIn()
    {
       return coinOrCoinIn;
+   }
+   
+   public Currency getCurrencyOrCurrencyIn() 
+   {
+      if(coinOrCoinIn == null) return null;
+      else if(Character.isDigit(coinOrCoinIn.charAt(0))) 
+      {
+         return Currency.synonymFilter(Currency.valueOf("_" + coinOrCoinIn));
+      }
+      return Currency.synonymFilter(Currency.valueOf(coinOrCoinIn));
    }
    
    public void setCoinOrCoinIn(String coinOrCoinIn) 
@@ -136,6 +157,16 @@ public class CryptoRecord implements Comparable<CryptoRecord> {
    public String getCoinOut() 
    {
       return coinOut;
+   }
+   
+   public Currency getCurrencyOut() 
+   {
+      if(coinOut == null) return null;
+      else if(Character.isDigit(coinOut.charAt(0))) 
+      {
+         return Currency.synonymFilter(Currency.valueOf("_" + coinOut));
+      }
+      return Currency.synonymFilter(Currency.valueOf(coinOut));
    }
    
    public void setCoinOut(String coinOut)
@@ -161,6 +192,20 @@ public class CryptoRecord implements Comparable<CryptoRecord> {
    public void setAmountOrAmountIn(double amount)
    {
       this.amountOrAmountIn = amount;
+   }
+   
+   public String getTokenSymbol() 
+   {
+      return null; // overridden in EthereumTx
+   }
+   
+   public Double getTotalTradeValue(USDTable table) 
+   {
+      Double outUsdPrice = table.getPriceInUSD(getCurrencyOut(), time);
+      if(outUsdPrice != null) {
+         return outUsdPrice * amountOut;
+      }
+      return null;
    }
    
    public void setCoinOutInUsd(double coinOutInUsd) 
@@ -249,6 +294,16 @@ public class CryptoRecord implements Comparable<CryptoRecord> {
       Utils.notNull(rawLine);
       this.rawLine = rawLine;
       vectorLine = Arrays.asList(rawLine.split(","));
+   }
+   
+   public void setCalcNotes(String calcNotes) 
+   {
+      this.calcNotes = calcNotes;
+   }
+   
+   public String getCalcNotes() 
+   {
+      return this.calcNotes;
    }
    
    public void setExchange(String _exchange) 
@@ -373,18 +428,8 @@ public class CryptoRecord implements Comparable<CryptoRecord> {
       transaction.date(time);
       System.out.println("Creating transaction for index=" + this.recordIndex + "    raw=" + getRawLine());
       
-      String currSell = getCoinOut();
-      String currBuy = getCoinOrCoinIn();
-      if(Character.isDigit(currSell.charAt(0))) 
-      {
-         currSell = "_" + currSell;
-      }
-      if(Character.isDigit(currBuy.charAt(0))) 
-      {
-         currBuy = "_" + currBuy;
-      }
-      Currency sellCurrency = Currency.valueOf(currSell); // minor 
-      Currency buyCurrency = Currency.valueOf(currBuy); // major
+      Currency sellCurrency = this.getCurrencyOut(); // minor 
+      Currency buyCurrency = this.getCurrencyOrCurrencyIn();// major
       Utils.notNull(sellCurrency);
       Utils.notNull(buyCurrency);
 

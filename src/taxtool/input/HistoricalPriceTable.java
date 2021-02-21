@@ -163,9 +163,9 @@ public class HistoricalPriceTable implements IPriceInterface {
    }
 
    @Override
-   public double getPriceInUSD(Currency currency, long time) {
+   public Double getPriceInUSD(Currency currency, long time) {
       // TODO Auto-generated method stub
-      return 0;
+      return 0d;
    }
 
 }

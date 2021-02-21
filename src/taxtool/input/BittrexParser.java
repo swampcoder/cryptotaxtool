@@ -23,7 +23,7 @@ public class BittrexParser extends CsvParser {
       String[] lineArgs = tradeCsv.split(",");
       String[] coins = lineArgs[1].split("-");
       Double quantity = Double.parseDouble(lineArgs[3]);
-      Double price = Double.parseDouble(lineArgs[6]);
+      Double price = Double.parseDouble(lineArgs[4]);
       Double commission = Double.parseDouble(lineArgs[5]);
       double amountOut = quantity * price + commission;
       Date tradeDate = BittrexDateFormat.parse(lineArgs[8]);
@@ -32,6 +32,9 @@ public class BittrexParser extends CsvParser {
       record.setExchange("bittrex");  
       record.setTime(tradeTime);
       record.setRawLine(tradeCsv);
+     
+      String calcDebug = "computing quantity=" + quantity + "  price=" + price + "  comission=" + commission;
+      record.setCalcNotes(calcDebug);
       
       if (lineArgs[2].equals("LIMIT_BUY")) {
          record.setAmountOrAmountIn(quantity);

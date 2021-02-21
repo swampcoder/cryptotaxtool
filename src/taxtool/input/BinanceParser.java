@@ -24,26 +24,45 @@ public class BinanceParser extends CsvParser {
       Double price = Double.parseDouble(line[3]);
       Double amount = Double.parseDouble(line[4]);
       Double total = Double.parseDouble(line[5]);
-      String buyCoin;
-      String sellCoin;
+      String major;
+      String minor;
       if (line[1].length() != 6) {
          String[] tryParse = tryparse(line[1]);
 
          if (tryParse == null) {
             throw new RuntimeException("UKNOWN: " + line[1]);
          } else {
-            buyCoin = tryParse[0];
-            sellCoin = tryParse[1];
+            major = tryParse[0];
+            minor = tryParse[1];
          }
 
       } else {
 
-         buyCoin = line[1].substring(0, 3);
-         sellCoin = line[1].substring(3, 6);
+         major = line[1].substring(0, 3);
+         minor = line[1].substring(3, 6);
 
       }
       CryptoRecord trade = new CryptoRecord(RecordType.Trade);
-      return null;
+      trade.setTime(date.getTime());
+      trade.setRawLine(tradeCsv);
+      trade.setExchange("BINANCE");
+      
+      if(line[2].equalsIgnoreCase("SELL")) 
+      {
+         trade.setCoinOrCoinIn(minor);
+         trade.setCoinOut(major);
+         trade.setAmountOut(amount);
+         trade.setAmountOrAmountIn(amount*price);
+      }
+      else if(line[2].equalsIgnoreCase("BUY")) 
+      {
+         trade.setCoinOrCoinIn(major);
+         trade.setCoinOut(minor);
+         trade.setAmountOut(price*amount);
+         trade.setAmountOrAmountIn(amount);
+      }
+
+      return trade;
    }
 
    private static String[] tryparse(String line) {

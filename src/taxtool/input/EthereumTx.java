@@ -152,6 +152,7 @@ public class EthereumTx extends CryptoRecord {
       this.tokenSymbol = tokenSymbol;
    }
 
+   @Override
    public String getTokenSymbol() {
       return tokenSymbol;
    }

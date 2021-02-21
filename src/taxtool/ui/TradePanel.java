@@ -3,12 +3,17 @@ package taxtool.ui;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.text.ParseException;
 
+import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -20,6 +25,8 @@ import javax.swing.JTextField;
 import taxtool.input.DataRecord;
 import taxtool.input.FilterControlPanel;
 import taxtool.input.MasterRecordTable;
+import taxtool.input.MasterTableMode;
+import taxtool.input.RecordType;
 
 public class TradePanel extends JPanel {
 
@@ -52,12 +59,104 @@ public class TradePanel extends JPanel {
       masterTable = new MasterRecordTable(frame, masterFilterIn, record, etherscanTable);
       masterPane.add(new JScrollPane(masterTable), BorderLayout.CENTER);
       masterFilterIn.getDocument().addDocumentListener(masterTable);
+      
+      JCheckBox fullscreen = new JCheckBox("Fullscreen");
+      fullscreen.addActionListener(new ActionListener() {
+
+         @Override
+         public void actionPerformed(ActionEvent e) {
+            
+            GraphicsEnvironment graphics = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            GraphicsDevice device = graphics.getDefaultScreenDevice();
+
+            if(fullscreen.isSelected())
+               device.setFullScreenWindow(frame);
+            else
+               device.setFullScreenWindow(null);
+         }
+      
+      });
+
+       
+        
+      
       JPanel filterPane = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 2));
+      filterPane.add(fullscreen);
+      filterPane.add(Box.createHorizontalStrut(40));
       filterPane.add(new JLabel("Filter Text"));
       filterPane.add(masterFilterIn);
-      masterPane.add(filterPane, BorderLayout.NORTH);
       
-      tabs.addTab("MASTER", new JScrollPane(masterTable));
+      JButton queryInUsd = new JButton("Query In USD");
+      JButton queryOutUsd = new JButton("Query Out USD");
+      filterPane.add(Box.createHorizontalStrut(30));
+      filterPane.add(queryInUsd);
+      filterPane.add(Box.createHorizontalStrut(5));
+      filterPane.add(queryOutUsd);
+      
+      queryInUsd.addActionListener(new ActionListener() {
+         @Override
+         public void actionPerformed(ActionEvent e) 
+         {
+            
+         }
+      });
+      
+      queryOutUsd.addActionListener(new ActionListener() {
+         @Override
+         public void actionPerformed(ActionEvent e) 
+         {
+            
+         }
+      });
+      
+      
+      masterPane.add(filterPane, BorderLayout.NORTH);
+      JPanel lowerMaster = new JPanel(new FlowLayout(FlowLayout.LEFT, 3,1));
+      lowerMaster.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLoweredBevelBorder(), 
+            BorderFactory.createEmptyBorder(3, 0, 3, 0)));
+      
+      for(MasterTableMode tableMode : MasterTableMode.values()) 
+      {
+         JCheckBox modeBox = new JCheckBox(tableMode.name(), tableMode == MasterTableMode.Default);
+         lowerMaster.add(modeBox);
+         modeBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) 
+            {
+               masterTable.setTableMode(tableMode);
+            }
+         });
+         
+      }
+      lowerMaster.add(Box.createHorizontalStrut(30));
+      for(RecordType rt : RecordType.values()) 
+      {
+         JCheckBox rtBox = new JCheckBox(rt.name(), true);
+         lowerMaster.add(rtBox);
+         rtBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) 
+            {
+               masterTable.setVisible(rt, rtBox.isSelected());
+            }
+         });
+      }
+      lowerMaster.add(Box.createHorizontalStrut(30));
+      for(int i =2013; i <= 2021; i++) 
+      {
+         final int i2 = i;
+         JCheckBox yearFilter = new JCheckBox(Integer.toString(i), true);
+         yearFilter.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+               masterTable.setVisible(i2,yearFilter.isSelected());
+            }
+         });
+         lowerMaster.add(yearFilter);
+      }
+      masterPane.add(lowerMaster,BorderLayout.SOUTH);
+      tabs.addTab("MASTER",masterPane);
       tabs.addTab("ADDRESSES", new JScrollPane(addressTable));
       tabs.addTab("STAKES", new JPanel());
       tabs.addTab("ETHEREUM", new JScrollPane(etherscanTable));

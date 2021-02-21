@@ -10,7 +10,10 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Base64;
+import java.util.Date;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -69,13 +72,22 @@ public class Utils {
       }
    }
    
+   public static Double queryPriceInBTC(String coin, long time) throws IOException 
+   {
+      return queryPrice(coin, "BTC", time);
+   }
+   
    public static Double queryPriceInUSD(String coin, long time) throws IOException 
    {
       return queryPrice(coin, "USD", time);
    }
    
+   private final static DateFormat TIME_FORMAT = new SimpleDateFormat("yyyy-M-dd hh:mm:ss");
+   
    public static Double queryPrice(String major, String minor, Long time) throws IOException {
 
+      if(major == null || minor == null || major.equals(minor)) return null;
+      
       long timestamp = time / 1000;
       String url = "https://min-api.cryptocompare.com/data/histohour?fsym=" + major + "&tsym=" + minor
             + "&limit=1&toTs=" + timestamp;
@@ -96,9 +108,15 @@ public class Utils {
                System.out.println("Query result: " + major + "/" + minor + "   @  " + priceStr);
                if(priceStr == null) return null;
                Double price =  Double.parseDouble(priceStr);
+               if(price != null && price.doubleValue() == 0d)
+               {
+                  System.out.println("VALUE 0 for coin pair=" + 
+                        major + "/" + minor + "  @   " + TIME_FORMAT.format(new Date(time)));
+               }
                return price;
             } catch (JSONException e) {
-               System.out.println("Request failed for coin pair=" + major + "/" + minor);
+               System.out.println("Request failed for coin pair=" + 
+                     major + "/" + minor + "  @   " + TIME_FORMAT.format(new Date(time)));
                return null;
             }
          }
