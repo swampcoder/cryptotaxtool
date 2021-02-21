@@ -16,7 +16,7 @@ public class BinanceParser extends CsvParser {
    }
 
    @Override
-   public Trade parseLine(String tradeCsv) throws ParseException {
+   public CryptoRecord parseLine(String tradeCsv) throws ParseException {
 
       String[] line = tradeCsv.split(",");
 
@@ -42,6 +42,7 @@ public class BinanceParser extends CsvParser {
          sellCoin = line[1].substring(3, 6);
 
       }
+      CryptoRecord trade = new CryptoRecord(RecordType.Trade);
       return null;
    }
 

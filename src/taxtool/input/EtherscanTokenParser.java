@@ -32,7 +32,6 @@ public class EtherscanTokenParser {
          if (tx != null) {
             tx.setRecordSource(file, line);
             ethTxs.add(tx);
-            System.out.println(tx);
          }
       }
 
@@ -57,7 +56,7 @@ public class EtherscanTokenParser {
 
       tx.setTxHash(csvs.get(0));
       Date date = TimeFormat.parse(csvs.get(2));
-      tx.setTimeOf(date.getTime());
+      tx.setTime(date.getTime());
       tx.setFrom(csvs.get(3));
       tx.setTo(csvs.get(4));
       String valueStr = csvs.get(5).replaceAll(",", "");

@@ -21,6 +21,8 @@ abstract public class DataTableModel<T> extends AbstractTableModel {
    private final Map<Integer, Class> columnClasses = new HashMap<Integer, Class>();
 
    abstract protected Object getValueAt(T o, int r, int c);
+   
+   protected void setValueAt(T ro, Object o, int r, int c) {}
 
    public DataTableModel(DataTable<T> table, String[] columns) {
       super();
@@ -33,6 +35,14 @@ abstract public class DataTableModel<T> extends AbstractTableModel {
       r = table.convertRowIndexToModel(r);
       T o = get(r);
       return getValueAt(o, r, c);
+   }
+   
+   @Override
+   public final void setValueAt(Object o, int r, int c) 
+   {
+      r = table.convertRowIndexToModel(r);
+      T ro = get(r);
+      setValueAt(ro,o,r,c);
    }
 
    protected void setColumnClass(Class<?> classType, int c) {

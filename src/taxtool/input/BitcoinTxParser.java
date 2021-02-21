@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+// parser for https://explorer.bitcoin.com/btc csv exports 
+
 //"Date","Block height","Transaction ID","Confirmations","Input Count","Output Count","Amount (BTC)","Amount Fiat (USD) at transaction timestamp",
 // "BTC to USD rate at transaction timestamp","Fees (BTC)","Size (kB)","Input List (BTC)","Output List (BTC)"
 public class BitcoinTxParser {
@@ -38,7 +40,7 @@ public class BitcoinTxParser {
          BitcoinTx tx = new BitcoinTx();
          tx.setTime(date.getTime());
          tx.setFromAddress(file.getName().replaceAll(".csv", ""));
-         tx.setAmount(Double.parseDouble(amountStr));
+         tx.setAmountOrAmountIn(Double.parseDouble(amountStr));
          tx.setTxHash(txId);
          txList.add(tx);
 

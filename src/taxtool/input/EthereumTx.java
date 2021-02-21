@@ -4,11 +4,10 @@ import java.awt.Color;
 
 //"Txhash","Blockno","UnixTimestamp","DateTime","From","To","ContractAddress",
 //"Value_IN(ETH)","Value_OUT(ETH)","CurrentValue @ $1836.92/Eth","TxnFee(ETH)","TxnFee(USD)","Historical $Price/Eth","Status","ErrCode"
-public class EthereumTx extends RecordBase implements Comparable<EthereumTx>, IRecordInterface {
+public class EthereumTx extends CryptoRecord {
 
-   private final static IAddressResolver RESOLVER = IRankedService.resolveService(IAddressResolver.class);
+   private final static IAddressResolver RESOLVER = PersonalData.getAddrResolver();
    private String txHash = null;
-   private long timeOf = 0L;
    private String from = null;
    private String to = null;
    private String contract = null;
@@ -21,16 +20,10 @@ public class EthereumTx extends RecordBase implements Comparable<EthereumTx>, IR
    private double tokenValue = -1;
 
    public EthereumTx() {
-
+      super(RecordType.EthTx);
+      setCoinOrCoinIn("ETH");
    }
 
-   @Override
-   public Long getTime() {
-
-      return timeOf;
-   }
-
-   @Override
    public MasterRecordData getRecordType(DataRecord data) {
 
       String txt = null;
@@ -59,15 +52,15 @@ public class EthereumTx extends RecordBase implements Comparable<EthereumTx>, IR
 
       return new MasterRecordData(txt, clr);
    }
-
-   @Override
-   public Double getAmount() {
-      if (this.valueInEth > 0)
-         return valueInEth;
-      else if (valueOutEth > 0)
-         return valueOutEth;
-      else
-         return null;
+   
+   public boolean isFromMe(DataRecord record) 
+   {
+       return record.isAddressMine(from);
+   }
+   
+   public boolean isToMe(DataRecord record) 
+   {
+      return record.isAddressMine(to);
    }
 
    public int getIndex() {
@@ -80,7 +73,7 @@ public class EthereumTx extends RecordBase implements Comparable<EthereumTx>, IR
 
    @Override
    public String toString() {
-      return "Etherscan date=" + timeOf + "  to=" + to + "   from=" + from;
+      return "Etherscan date=" + getTime() + "  to=" + to + "   from=" + from;
    }
 
    public String getTxHash() {
@@ -89,14 +82,6 @@ public class EthereumTx extends RecordBase implements Comparable<EthereumTx>, IR
 
    public void setTxHash(String txHash) {
       this.txHash = txHash;
-   }
-
-   public long getTimeOf() {
-      return timeOf;
-   }
-
-   public void setTimeOf(long timeOf) {
-      this.timeOf = timeOf;
    }
 
    public String getFrom() {
@@ -121,14 +106,17 @@ public class EthereumTx extends RecordBase implements Comparable<EthereumTx>, IR
 
    public void setValueInEth(double valueInEth) {
       this.valueInEth = valueInEth;
+      this.setAmountOrAmountIn(valueInEth);
    }
 
    public double getValueOutEth() {
       return valueOutEth;
+      
    }
 
    public void setValueOutEth(double valueOutEth) {
       this.valueOutEth = valueOutEth;
+      this.setAmountOut(valueOutEth);
    }
 
    public String getContract() {
@@ -174,18 +162,6 @@ public class EthereumTx extends RecordBase implements Comparable<EthereumTx>, IR
 
    public String getTokenName() {
       return tokenName;
-   }
-
-   @Override
-   public int compareTo(EthereumTx o) {
-
-      return -Long.compare(o.timeOf, timeOf);
-   }
-
-   @Override
-   public String getCoin() {
-
-      return "ETH";
    }
 
 }

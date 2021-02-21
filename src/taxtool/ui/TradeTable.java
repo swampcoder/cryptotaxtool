@@ -148,7 +148,7 @@ public class TradeTable extends DataTable<Trade> implements IDataTableSelectionL
       } else if (column == TradeTableModel.OUT_HOLDING) {
          JLabel l = (JLabel) c;
          Double v = (Double) value;
-         if (trade.sellCoin.equalsIgnoreCase("USD")) {
+         if (trade.getCoinOut().equalsIgnoreCase("USD")) {
             l.setText("$" + USD_FORMAT.format((Double) value));
          } else {
             if (v < 0)
@@ -161,7 +161,7 @@ public class TradeTable extends DataTable<Trade> implements IDataTableSelectionL
       } else if (column == TradeTableModel.IN_HOLDING) {
          JLabel l = (JLabel) c;
          Double v = (Double) value;
-         if (trade.buyCoin.equalsIgnoreCase("USD")) {
+         if (trade.getCoinOrCoinIn().equalsIgnoreCase("USD")) {
             l.setText("$" + USD_FORMAT.format((Double) value));
          } else {
             if (v < 0)
@@ -172,7 +172,7 @@ public class TradeTable extends DataTable<Trade> implements IDataTableSelectionL
          }
       } else if (column == TradeTableModel.OUT_AMT) {
          JLabel l = (JLabel) c;
-         if (trade.sellCoin.equalsIgnoreCase("USD")) {
+         if (trade.getCoinOut().equalsIgnoreCase("USD")) {
             l.setText("$" + USD_FORMAT.format((Double) value));
             l.setForeground(Color.GREEN);
          } else {
@@ -181,7 +181,7 @@ public class TradeTable extends DataTable<Trade> implements IDataTableSelectionL
          l.setText(MAX_COIN_PREC.format((Double) value));
       } else if (column == TradeTableModel.IN_AMT) {
          JLabel l = (JLabel) c;
-         if (trade.buyCoin.equalsIgnoreCase("USD")) {
+         if (trade.getCoinOrCoinIn().equalsIgnoreCase("USD")) {
             l.setText("$" + USD_FORMAT.format((Double) value));
             l.setForeground(Color.GREEN);
          } else {
@@ -225,15 +225,15 @@ public class TradeTable extends DataTable<Trade> implements IDataTableSelectionL
          @Override
          public boolean isFilteredOut(Trade t) {
             if (visibleCoins.size() > 0) {
-               if (!visibleCoins.contains(t.buyCoin) && !visibleCoins.contains(t.sellCoin)) {
+               if (!visibleCoins.contains(t.getCoinOrCoinIn()) && !visibleCoins.contains(t.getCoinOut())) {
                   return true;
                }
             }
 
-            if (!showUsdSells && t.buyCoin.equalsIgnoreCase("usd")) {
+            if (!showUsdSells && t.getCoinOrCoinIn().equalsIgnoreCase("usd")) {
                return true;
             }
-            if (!showUsdBuys && t.sellCoin.equalsIgnoreCase("usd")) {
+            if (!showUsdBuys && t.getCoinOut().equalsIgnoreCase("usd")) {
                return true;
             }
 

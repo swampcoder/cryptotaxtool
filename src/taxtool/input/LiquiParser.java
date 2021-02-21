@@ -15,7 +15,7 @@ public class LiquiParser extends CsvParser {
    }
 
    @Override
-   public Trade parseLine(String tradeCsv) throws ParseException {
+   public CryptoRecord parseLine(String tradeCsv) throws ParseException {
 
       String[] lineArgs = tradeCsv.split(",");
       String[] coins = lineArgs[1].split("/");
@@ -27,14 +27,22 @@ public class LiquiParser extends CsvParser {
       double total = Double.parseDouble(lineArgs[5]);
       Date tradeDate = LiquiDateFormat.parse(lineArgs[0]);
       long tradeTime = tradeDate.getTime();
+      CryptoRecord record = new CryptoRecord(RecordType.Trade);
+      record.setRawLine(tradeCsv);
+      record.setTime(tradeTime);
+      record.setExchange("liqui");
       if (lineArgs[2].equals("BUY")) {
-         Trade trade = new Trade(tradeCsv, tradeTime, coins[0], quantity, coins[1], total, "liqui");
-         // System.out.println(trade);
-         return trade;
+         record.setCoinOrCoinIn(coins[0]);
+         record.setAmountOrAmountIn(quantity);
+         record.setCoinOut(coins[1]);
+         record.setAmountOut(total);
+         return record;
       } else if (lineArgs[2].equals("SELL")) {
-         Trade trade = new Trade(tradeCsv, tradeTime, coins[1], quantity, coins[0], total, "liqui");
-         // System.out.println(trade);
-         return trade;
+         record.setCoinOrCoinIn(coins[1]);
+         record.setAmountOrAmountIn(quantity);
+         record.setCoinOut(coins[0]);
+         record.setAmountOut(total);
+         return record;
       } else {
          throw new IllegalArgumentException("Unknown order type=" + lineArgs[2]);
       }

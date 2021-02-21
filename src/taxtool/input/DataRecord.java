@@ -2,9 +2,6 @@ package taxtool.input;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -14,13 +11,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import ctc.calculator.CalculatedTransaction;
+import ctc.calculator.CalculatedTransactionFile;
+import ctc.transactions.Transaction;
+
 public class DataRecord {
 
-   private final static IAddressResolver RESOLVER = IRankedService.resolveService(IAddressResolver.class);
-
-   public static interface IDataRecordLoader {
-      public DataRecord loadData(File f) throws ClassNotFoundException, IOException, ParseException;
-   }
+   private final static int MAX_INDEX = 250;
+   
+   private final static IAddressResolver RESOLVER = PersonalData.getAddrResolver();
 
    public static interface IDataRecordListener {
       default public void notifyAddressLabel(Address addr, String label) {
@@ -30,19 +29,19 @@ public class DataRecord {
       }
    }
 
-   public static class MasterSorter implements Comparator<IRecordInterface> {
+   public static class MasterSorter implements Comparator<CryptoRecord> {
       @Override
-      public int compare(IRecordInterface o1, IRecordInterface o2) {
+      public int compare(CryptoRecord o1, CryptoRecord o2) {
 
          return Long.compare(o1.getTime(), o2.getTime());
       }
-
    }
 
-   private final List<IRecordInterface> masterRecords = new ArrayList<IRecordInterface>();
-   private final List<Trade> trades = new ArrayList<Trade>();
-   private final List<Withdrawal> withdrawals = new ArrayList<Withdrawal>();
-   private final List<Deposit> deposits = new ArrayList<Deposit>();
+   private final Set<String> CoinSet = new HashSet<String>();
+   private final List<CryptoRecord> masterRecords = new ArrayList<CryptoRecord>();
+   private final List<CryptoRecord> trades = new ArrayList<CryptoRecord>();
+   private final List<CryptoRecord> withdrawals = new ArrayList<CryptoRecord>();
+   private final List<CryptoRecord> deposits = new ArrayList<CryptoRecord>();
    private final List<EthereumTx> allEthTxs = new ArrayList<EthereumTx>();
    private final Map<String, List<EthereumTx>> etherscanCsv = new HashMap<String, List<EthereumTx>>();
    private final List<BitcoinTx> allBitcoinTxs = new ArrayList<BitcoinTx>();
@@ -52,19 +51,60 @@ public class DataRecord {
    private final Set<String> myAddresses = new HashSet<String>();
    private final Set<String> exchanges = new HashSet<String>();
 
+   // USD Table
+   private final USDTable usdTable;
+   
    private final Set<String> depositTxHashes = new HashSet<String>();
    private final Set<String> withdrawalTxHashes = new HashSet<String>();
+   
+   private final Map<String,Double> coinTotals = new HashMap<String, Double>();
+   private final Map<Long, Map<String, Double>> timeToCoinTotals = new HashMap<Long,Map<String,Double>>();
 
-   public DataRecord() {
+   private CalculatedTransactionFile taxData = null;
+   
+   public DataRecord() throws IOException {
       super();
       listeners = new ArrayList<IDataRecordListener>();
+      usdTable = new USDTable();
+   }
+   
+   public USDTable getUSDTable() 
+   {
+      return usdTable;
+   }
+   
+   public void processGains() throws IOException 
+   {
+      ArrayList<Transaction> transactions = new ArrayList<Transaction>();
+      for(CryptoRecord cr : masterRecords) 
+      {
+         if(cr.getTime() == 0) continue; // ignore 
+         if(cr.isCrowdsale()) continue;// ignore for now
+         
+         if(cr.getIndex() > MAX_INDEX) { // for testing 
+            System.out.println("!!!!!!!!!!!!!!!STOPPING AT MAX_INDEX!!!!!!!!!!!!!!!!!!!!!!");
+            break;
+         }
+         Transaction tx = cr.createTransaction();
+         if(tx == null) continue;
+         tx.setLinkedObj(cr);
+         transactions.add(tx);
+      }
+      taxData = new CalculatedTransactionFile(transactions);
+      taxData.outputAssets();
+      for(Transaction ct : taxData.getTransactions()) 
+      {
+         CalculatedTransaction calcTx  = (CalculatedTransaction) ct;
+         CryptoRecord cr = (CryptoRecord) calcTx.getLinkedObject();
+         cr.setCalculatedTransaction(calcTx);
+      }
    }
 
    public void addListener(IDataRecordListener listener) {
       listeners.add(listener);
    }
 
-   public List<IRecordInterface> getMasterRecords() {
+   public List<CryptoRecord> getMasterRecords() {
       return masterRecords;
    }
 
@@ -72,15 +112,15 @@ public class DataRecord {
       return coinMap.values();
    }
 
-   public List<Trade> getTrades() {
+   public List<CryptoRecord> getTrades() {
       return trades;
    }
 
-   public List<Withdrawal> getWithdrawals() {
+   public List<CryptoRecord> getWithdrawals() {
       return withdrawals;
    }
 
-   public List<Deposit> getDeposits() {
+   public List<CryptoRecord> getDeposits() {
       return deposits;
    }
 
@@ -144,10 +184,6 @@ public class DataRecord {
       outputFile.createNewFile();
    }
 
-   public void backupToFile() {
-
-   }
-
    public void initState() throws IOException {
       listeners = new ArrayList<IDataRecordListener>();
       if (coinMap != null)
@@ -155,28 +191,26 @@ public class DataRecord {
       coinMap = new HashMap<String, CoinTotal>();
       coinAddressSets = new HashMap<String, Set<Address>>();
       int i = 0;
-      for (Trade trade : trades) {
-         initCoin(trade.buyCoin);
-         initCoin(trade.sellCoin);
-         inputTrade(trade);
-         trade.setTradeIndex(i);
-         trade.initPriceData();
+      for (CryptoRecord trade : trades) {
+         initCoin(trade.getCoinOrCoinIn());
+         initCoin(trade.getCoinOut());
+         //trade.initPriceData();
          masterRecords.add(trade);
          i++;
       }
 
       i = 0;
-      for (Withdrawal wd : withdrawals) {
-         inputAddress(wd.getCoin(), wd.getCaseSensitiveAddress(), "WITHDRAWAL CSV");
+      for (CryptoRecord wd : withdrawals) {
+         inputAddress(wd.getCoinOrCoinIn(), wd.getToAddressCS(), "WITHDRAWAL CSV");
          wd.setIndex(i);
          i++;
          masterRecords.add(wd);
-         withdrawalTxHashes.add(wd.getTxHash());
+         withdrawalTxHashes.add(wd.getTxId());
       }
 
       i = 0;
-      for (Deposit depo : deposits) {
-         inputAddress(depo.getCoin(), depo.getAddress(), "DEPOSIT CSV");
+      for (CryptoRecord depo : deposits) {
+         inputAddress(depo.getCoinOrCoinIn(), depo.getToAddressCS(), "DEPOSIT CSV");
          i++;
          masterRecords.add(depo);
          depositTxHashes.add(depo.getTxId());
@@ -191,10 +225,24 @@ public class DataRecord {
 
       Collections.sort(masterRecords, new MasterSorter());
       i = 0;
-      for (IRecordInterface rec : masterRecords) {
+      for (CryptoRecord rec : masterRecords) {
          rec.setIndex(i);
          i++;
+         inputRecord(rec);
+         
+         // print the enum syntax to update the CalcGain tool file
+         if(rec.getCoinOut() != null) CoinSet.add(rec.getCoinOut());
+         if(rec.getCoinOrCoinIn() != null) CoinSet.add(rec.getCoinOrCoinIn());
+         
+         if(rec.getTime() < 0) throw new IllegalStateException("Invalid time for=" + rec.getRawLine());
       }
+      
+      String enumSyntax = "";
+      for(String coin : CoinSet) 
+      {
+         enumSyntax +="," + coin.toUpperCase();
+      }
+      //System.out.println(enumSyntax);  
    }
 
    private void inputAddress(String coin, String address, String source) {
@@ -228,16 +276,6 @@ public class DataRecord {
       }
    }
 
-   private void readObject(ObjectInputStream is) throws ClassNotFoundException, IOException {
-      is.defaultReadObject();
-      initState();
-   }
-
-   private void writeObject(ObjectOutputStream os) throws IOException {
-      os.defaultWriteObject();
-
-   }
-
    private void initCoin(String coin) {
       CoinTotal coinTotal = coinMap.get(coin);
       if (coinTotal == null) {
@@ -246,13 +284,20 @@ public class DataRecord {
       }
    }
 
-   private void inputTrade(Trade trade) {
-      CoinTotal coinTotal = coinMap.get(trade.buyCoin);
-      coinTotal.buy(trade.buyAmount);
-      double buyTotal = coinTotal.getTotal();
-      coinTotal = coinMap.get(trade.sellCoin);
-      coinTotal.sell(trade.sellTotal);
-      double sellTotal = coinTotal.getTotal();
-      trade.setTotals(buyTotal, sellTotal);
+   private void inputRecord(CryptoRecord rec) {
+      
+      if(rec.isTrade())
+      {
+         double inValue = coinTotals.getOrDefault(rec.getCoinOrCoinIn(), 0d);
+         inValue += rec.getAmountOrAmountIn();
+         
+         double outValue = coinTotals.getOrDefault(rec.getCoinOrCoinIn(), 0d);
+         outValue -= rec.getAmountOut();
+         
+         coinTotals.put(rec.getCoinOut(), outValue);
+         coinTotals.put(rec.getCoinOrCoinIn(), inValue);
+      }
+      
+      rec.setTotals(coinTotals); // each record has a copy of coin totals at that time 
    }
 }

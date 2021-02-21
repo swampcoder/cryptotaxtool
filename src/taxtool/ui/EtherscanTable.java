@@ -61,7 +61,7 @@ public class EtherscanTable extends RecordTable<EthereumTx> {
    @Override
    protected void handleDoubleClick(MouseEvent me, int row, int col, EthereumTx rowObj) {
       if (col == DATE) {
-         StringSelection selection = new StringSelection(Long.toString(rowObj.getTimeOf()));
+         StringSelection selection = new StringSelection(Long.toString(rowObj.getTime()));
          Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
          clipboard.setContents(selection, selection);
       }
@@ -97,7 +97,7 @@ public class EtherscanTable extends RecordTable<EthereumTx> {
       boolean contractMine = data.isAddressMine(rowObj.getContract());
       JLabel l = (JLabel) c;
       if (column == DATE) {
-         Date d = new Date(rowObj.getTimeOf());
+         Date d = new Date(rowObj.getTime());
          l.setText(TimeFormat.format(d));
       } else if (column == TO) {
          String label = data.getAddressLabel((String) value);
@@ -145,19 +145,16 @@ public class EtherscanTable extends RecordTable<EthereumTx> {
          if (c == IDX)
             return tx.getIndex();
          if (c == DATE)
-            return tx.getTimeOf();
-
+            return tx.getTime();
          else if (c == FROM)
             return tx.getFrom();
          else if (c == TO)
             return tx.getTo();
          else if (c == TOKEN) {
             return tx.getTokenName();
-
          } else if (c == CONTRACT)
             return tx.getContract();
          else if (c == IN_AMT) {
-
             if (tx.isTokenTx())
                return tx.getTokenValue();
             else

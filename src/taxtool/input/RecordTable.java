@@ -6,9 +6,8 @@ import java.util.List;
 import javax.swing.JTable;
 
 import taxtool.ui.table.DataTable;
-import taxtool.ui.table.DataTableModel;
 
-abstract public class RecordTable<T extends IRecordInterface> extends DataTable<T> {
+abstract public class RecordTable<T extends CryptoRecord> extends DataTable<T> {
 
    private List<T> selections = null;
 

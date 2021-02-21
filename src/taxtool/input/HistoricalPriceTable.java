@@ -19,7 +19,10 @@ import java.util.Map;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class HistoricalPriceTable {
+import ctc.calculator.IPriceInterface;
+import ctc.enums.Currency;
+
+public class HistoricalPriceTable implements IPriceInterface {
 
    private final static DecimalFormat df = new DecimalFormat("0", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
 
@@ -70,10 +73,10 @@ public class HistoricalPriceTable {
       }
    }
 
-   public void requestTrade(Trade trade) throws IOException {
-      makeRequest(trade.sellCoin, trade.tradeTime);
-      makeRequest(trade.buyCoin, trade.tradeTime);
-      makeRequest("USD", trade.tradeTime); // need btc/usd for all trade times
+   public void requestTrade(CryptoRecord trade) throws IOException {
+      makeRequest(trade.getCoinOut(), trade.getTime());
+      makeRequest(trade.getCoinOrCoinIn(), trade.getTime());
+      makeRequest("USD", trade.getTime()); // need btc/usd for all trade times
 
    }
 
@@ -108,12 +111,9 @@ public class HistoricalPriceTable {
    public Double findPrice(String coin, Long time, boolean queryIfNotFound) throws IOException {
       if (coin == null)
          return null;
-      if (!queryIfNotFound)
-         return null;
-
       String key = coin.trim() + "," + time.toString();
       Double value = priceInMap.get(key);
-      if (value == null) {
+      if (value == null && queryIfNotFound) {
          value = queryPrice(coin, time);
          if (value == null)
             return null;
@@ -160,6 +160,12 @@ public class HistoricalPriceTable {
       }
 
       return 0d;
+   }
+
+   @Override
+   public double getPriceInUSD(Currency currency, long time) {
+      // TODO Auto-generated method stub
+      return 0;
    }
 
 }

@@ -16,7 +16,6 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableRowSorter;
 
 abstract public class DataTable<T> extends JTable {
 
@@ -34,6 +33,8 @@ abstract public class DataTable<T> extends JTable {
    private List<IDataTableHighlighter<T>> highlighters = new ArrayList<IDataTableHighlighter<T>>();
 
    private final Map<Integer, TableCellRenderer> columnRenderers = new HashMap<Integer, TableCellRenderer>();
+   
+   private Map<Integer,Boolean> colVisibleMap = new HashMap<Integer,Boolean>();
 
    public DataTable() {
       this.model = createModel();
@@ -75,6 +76,28 @@ abstract public class DataTable<T> extends JTable {
             tc.adjustColumns();
          }
       });
+   }
+   
+   public void showColumn(int column) 
+   {
+      Boolean v = this.colVisibleMap.getOrDefault(column,true);
+      if(v) return;
+      getColumnModel().getColumn(column).setMinWidth(00);
+      getColumnModel().getColumn(column).setMaxWidth(999);
+   }
+   
+   public void hideColumn(int column) 
+   {
+      Boolean v = this.colVisibleMap.getOrDefault(column,true);
+      if(!v) return;
+      getColumnModel().getColumn(column).setMinWidth(0);
+      getColumnModel().getColumn(column).setMaxWidth(0);
+      
+   }
+   
+   public boolean isColumnVisible(int column) 
+   {
+      return this.colVisibleMap.getOrDefault(column,true);
    }
 
    public static class NumericComparator implements Comparator<Number> {
@@ -122,6 +145,11 @@ abstract public class DataTable<T> extends JTable {
 
    protected void applyFilters() {
       getModel().applyFilters();
+   }
+   
+   protected void setRenderer(int c, TableCellRenderer r) 
+   {
+      this.columnRenderers.put(c, r);
    }
 
    private TableCellRenderer getRenderer(int c) {

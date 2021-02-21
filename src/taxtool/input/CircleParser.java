@@ -3,7 +3,6 @@ package taxtool.input;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 
 public class CircleParser extends CsvParser {
 
@@ -14,7 +13,7 @@ public class CircleParser extends CsvParser {
    // From Currency, To Amount, To Currency, Status",
 
    @Override
-   public Trade parseLine(String tradeCsv) throws ParseException {
+   public CryptoRecord parseLine(String tradeCsv) throws ParseException {
 
       String[] lineArgs = tradeCsv.split(",");
       for (int i = 1; i < lineArgs.length; i++) {
@@ -40,9 +39,15 @@ public class CircleParser extends CsvParser {
          Double usdAmnt = Double.parseDouble(fromAmount);
          Double btcAmt = Double.parseDouble(toAmount);
 
-         Trade t = new Trade(tradeCsv, time, "USD", usdAmnt, "BTC", btcAmt, "circle");
-
-         return t;
+         CryptoRecord trade = new CryptoRecord(RecordType.Trade);
+         trade.setTime(time);
+         trade.setCoinOut("USD");
+         trade.setCoinOrCoinIn("BTC");
+         trade.setAmountOut(usdAmnt);
+         trade.setAmountOrAmountIn(btcAmt);
+         trade.setExchange("circle");
+         trade.setRawLine(tradeCsv);
+         return trade;
       }
       return null;
    }

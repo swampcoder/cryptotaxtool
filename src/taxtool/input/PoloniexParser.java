@@ -16,7 +16,7 @@ public class PoloniexParser extends CsvParser {
    }
 
    @Override
-   public Trade parseLine(String tradeCsv) throws ParseException {
+   public CryptoRecord parseLine(String tradeCsv) throws ParseException {
 
       String[] lineArgs = tradeCsv.split(",");
       String[] coins = lineArgs[1].split("/");
@@ -31,14 +31,22 @@ public class PoloniexParser extends CsvParser {
       double total = Double.parseDouble(lineArgs[6]);
       Date tradeDate = PoloDateFormat.parse(lineArgs[0]);
       long tradeTime = tradeDate.getTime();
+      CryptoRecord record = new CryptoRecord(RecordType.Trade);
+      record.setRawLine(tradeCsv);
+      record.setTime(tradeTime);
+      record.setExchange("poloniex");
       if (lineArgs[3].equals("Buy")) {
-         Trade trade = new Trade(tradeCsv, tradeTime, coins[1], total, coins[0], quantity, "poloniex");
-         // System.out.println(trade);
-         return trade;
+         record.setCoinOrCoinIn(coins[1]);
+         record.setAmountOrAmountIn(total);
+         record.setCoinOut(coins[0]);
+         record.setAmountOut(quantity);
+         return record;
       } else if (lineArgs[3].equals("Sell")) {
-         Trade trade = new Trade(tradeCsv, tradeTime, coins[0], quantity, coins[1], total, "poloniex");
-         // System.out.println(trade);
-         return trade;
+         record.setCoinOrCoinIn(coins[0]);
+         record.setAmountOrAmountIn(quantity);
+         record.setCoinOut(coins[1]);
+         record.setAmountOut(total);
+         return record;
       } else {
          throw new IllegalArgumentException("Unknown order type=" + lineArgs[2]);
       }

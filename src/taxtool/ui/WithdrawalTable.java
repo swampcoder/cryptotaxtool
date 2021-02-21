@@ -1,4 +1,4 @@
-package taxtool.ui;
+/*package taxtool.ui;
 
 import java.awt.Color;
 import java.awt.Component;
@@ -61,7 +61,7 @@ public class WithdrawalTable extends RecordTable<Withdrawal> {
          l.setText(TIME_FORMAT.format(d));
       }
 
-      if (rowObj.getCoin().equalsIgnoreCase("eth"))
+      if (rowObj.getCoinOrCoinIn().equalsIgnoreCase("eth"))
          l.setForeground(Color.cyan);
       else
          l.setForeground(UIManagerUtils.labelForeground());
@@ -91,7 +91,7 @@ public class WithdrawalTable extends RecordTable<Withdrawal> {
          else if (c == TIME)
             return t.getTime();
          if (c == COIN)
-            return t.getCoin();
+            return t.getCoinOrCoinIn();
          else if (c == ADDRESS)
             return t.getAddress();
          else if (c == EXCHANGE)
@@ -104,4 +104,4 @@ public class WithdrawalTable extends RecordTable<Withdrawal> {
 
    }
 
-}
+}*/

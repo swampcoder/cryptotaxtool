@@ -25,10 +25,8 @@ public class TradePanel extends JPanel {
 
    private final JTabbedPane leftTabs = new JTabbedPane();
    private final CoinTotalTable totalTable;
-   private final TradeTable tradeTable;
    private final AddressTable addressTable;
    private final MasterRecordTable masterTable;
-   private final WithdrawalTable withdrawalTable;
    private final EtherscanTable etherscanTable;
    private final CostBasisBreakoutTable basisTable = new CostBasisBreakoutTable();
    private final JTabbedPane tabs = new JTabbedPane();
@@ -40,33 +38,12 @@ public class TradePanel extends JPanel {
       setLayout(new BorderLayout());
 
       etherscanTable = new EtherscanTable(record);
-      withdrawalTable = new WithdrawalTable(record);
-      tradeTable = new TradeTable(record);
       addressTable = new AddressTable(record);
-
-      JPanel tradePane = new JPanel(new BorderLayout());
-      addTradePaneControls(tradePane);
-      JScrollPane jsp = new JScrollPane(tradeTable);
-      jsp.getVerticalScrollBar().setUnitIncrement(100);
-      tradePane.add(jsp, BorderLayout.CENTER);
 
       totalTable = new CoinTotalTable(record);
       JPanel totalPane = new JPanel(new BorderLayout());
       totalPane.setPreferredSize(new Dimension(250, Integer.MAX_VALUE));
       totalPane.add(new JScrollPane(totalTable), BorderLayout.CENTER);
-
-      tabs.addTab("TRADES", tradePane);
-      tabs.addTab("ADDRESSES", new JScrollPane(addressTable));
-      tabs.addTab("WITHDRAWALS", new JScrollPane(withdrawalTable));
-      tabs.addTab("STAKES", new JPanel());
-      tabs.addTab("ETHEREUM", new JScrollPane(etherscanTable));
-
-      JPanel basisBreakout = new JPanel(new BorderLayout());
-      basisBreakout.add(new JScrollPane(basisTable), BorderLayout.CENTER);
-      add(basisBreakout, BorderLayout.EAST);
-      basisBreakout.setPreferredSize(new Dimension(250, Integer.MAX_VALUE));
-
-      leftTabs.addTab("TOTALS", totalPane);
 
       JPanel masterPane = new JPanel(new BorderLayout());
 
@@ -79,16 +56,28 @@ public class TradePanel extends JPanel {
       filterPane.add(new JLabel("Filter Text"));
       filterPane.add(masterFilterIn);
       masterPane.add(filterPane, BorderLayout.NORTH);
-      leftTabs.addTab("MASTER", new JScrollPane(masterTable));
+      
+      tabs.addTab("MASTER", new JScrollPane(masterTable));
+      tabs.addTab("ADDRESSES", new JScrollPane(addressTable));
+      tabs.addTab("STAKES", new JPanel());
+      tabs.addTab("ETHEREUM", new JScrollPane(etherscanTable));
+
+      JPanel basisBreakout = new JPanel(new BorderLayout());
+      basisBreakout.add(new JScrollPane(basisTable), BorderLayout.CENTER);
+      add(basisBreakout, BorderLayout.EAST);
+      basisBreakout.setPreferredSize(new Dimension(250, Integer.MAX_VALUE));
+
+      
+      leftTabs.addTab("TOTALS", totalPane);
+
+     
+    
       leftTabs.addTab("BASIS", basisBreakout);
-      leftTabs.addTab("FILTERS", new FilterControlPanel(tradeTable, totalTable));
+      leftTabs.addTab("FILTERS", new FilterControlPanel(totalTable));
 
       tradeSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftTabs, tabs);
       add(tradeSplit, BorderLayout.CENTER);
       tradeSplit.setDividerLocation(300);
-
-      // register listeners
-      totalTable.addListener(tradeTable);
    }
 
    private void addTradePaneControls(JPanel panel) {

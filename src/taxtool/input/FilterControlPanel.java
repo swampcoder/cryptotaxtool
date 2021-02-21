@@ -9,15 +9,13 @@ import javax.swing.JPanel;
 import org.jdesktop.swingx.VerticalLayout;
 
 import taxtool.ui.CoinTotalTable;
-import taxtool.ui.TradeTable;
 
 public class FilterControlPanel extends JPanel {
 
-   private final TradeTable tradeTable;
+
    private final CoinTotalTable coinTable;
 
-   public FilterControlPanel(TradeTable trade, CoinTotalTable coin) {
-      this.tradeTable = trade;
+   public FilterControlPanel(CoinTotalTable coin) {
       this.coinTable = coin;
       setLayout(new VerticalLayout());
       addFilters();
@@ -32,7 +30,7 @@ public class FilterControlPanel extends JPanel {
       usdOnly.addActionListener(new ActionListener() {
          @Override
          public void actionPerformed(ActionEvent e) {
-            tradeTable.setUsdOnly(usdOnly.isSelected());
+           // tradeTable.setUsdOnly(usdOnly.isSelected());
          }
       });
       add(usdOnly);
@@ -43,14 +41,14 @@ public class FilterControlPanel extends JPanel {
       showUsdToCrypto.addActionListener(new ActionListener() {
          @Override
          public void actionPerformed(ActionEvent e) {
-            tradeTable.setShowUsdSells(showUsdToCrypto.isSelected());
+           // tradeTable.setShowUsdSells(showUsdToCrypto.isSelected());
          }
       });
 
       showCryptoToUsd.addActionListener(new ActionListener() {
          @Override
          public void actionPerformed(ActionEvent e) {
-            tradeTable.setShowUsdBuys(showCryptoToUsd.isSelected());
+          //  tradeTable.setShowUsdBuys(showCryptoToUsd.isSelected());
          }
       });
    }

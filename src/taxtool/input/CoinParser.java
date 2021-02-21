@@ -9,19 +9,15 @@ import javax.swing.SwingUtilities;
 
 import com.formdev.flatlaf.FlatDarkLaf;
 
-import ctc.calculator.CalculatedTransactionFile;
 import taxtool.ui.TradePanel;
 
 public class CoinParser {
 
-   private final static IRecordLoader DATA_LOADER = IRankedService.resolveService(IRecordLoader.class);
    private final static JFrame txFrame = new JFrame();
 
    public static JFrame frame() {
       return txFrame;
    }
-
-   private CalculatedTransactionFile gainsCalc;
 
    public CoinParser() throws IOException, ParseException, ClassNotFoundException {
       FlatDarkLaf.install();
@@ -40,7 +36,7 @@ public class CoinParser {
 
    private void launchUI() throws IOException, ParseException, ClassNotFoundException {
 
-      DataRecord record = DATA_LOADER.loadRecords(); // load data record via provider
+      DataRecord record = PersonalData.getRecordLoader().loadRecords();
       txFrame.setTitle("TAX TOOL");
       TradePanel panel = new TradePanel(txFrame, record);
       panel.setPreferredSize(new Dimension(800, 700));

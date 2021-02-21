@@ -8,7 +8,6 @@ public class Address implements Serializable {
    private final String coin;
    private final String address;
    private final String originalAddress;
-   private String notes = null;
    private String source = null;
 
    public Address(String _coin, String _address) {

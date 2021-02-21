@@ -4,6 +4,6 @@ import java.text.ParseException;
 
 abstract public class CsvParser {
 
-   abstract public Trade parseLine(String tradeCsv) throws ParseException;
+   abstract public CryptoRecord parseLine(String tradeCsv) throws ParseException;
 
 }

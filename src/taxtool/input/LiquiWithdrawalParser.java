@@ -15,7 +15,7 @@ public class LiquiWithdrawalParser extends WithdrawalParser {
 
    // Id,Time,Symbol,Name,Amount,Status,Address,TxHash
    @Override
-   public Withdrawal parseCsv(String line) throws ParseException {
+   public CryptoRecord parseCsv(String line) throws ParseException {
 
       String[] split = line.split(",");
       Date date = LiquiDateFormat.parse(split[1]);
@@ -28,12 +28,12 @@ public class LiquiWithdrawalParser extends WithdrawalParser {
       String address = split[6];
       String txHash = split[7];
 
-      Withdrawal wd = new Withdrawal();
-      wd.setId(split[0]);
-      wd.setAddress(address);
-      wd.setCoin(coin);
-      wd.setAmount(amount);
-      wd.setTxHash(txHash);
+      CryptoRecord wd = new CryptoRecord(RecordType.Withdraw);
+      wd.setExchangeId(split[0]);
+      wd.setToAddress(address);
+      wd.setCoinOrCoinIn(coin);
+      wd.setAmountOrAmountIn(amount);
+      wd.setTxId(txHash);
       wd.setTime(date.getTime());
       wd.setExchange("liqui");
       return wd;

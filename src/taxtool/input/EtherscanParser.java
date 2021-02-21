@@ -31,7 +31,6 @@ public class EtherscanParser {
          EthereumTx tx = parseTx(line);
          if (tx != null) {
             ethTxs.add(tx);
-            System.out.println(tx);
          }
       }
 
@@ -51,7 +50,7 @@ public class EtherscanParser {
 
       tx.setTxHash(csvs[0]);
       Date date = TimeFormat.parse(csvs[3]);
-      tx.setTimeOf(date.getTime());
+      tx.setTime(date.getTime());
       tx.setFrom(csvs[4]);
       tx.setTo(csvs[5]);
       tx.setContract(csvs[6]);

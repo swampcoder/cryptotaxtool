@@ -14,9 +14,9 @@ public class BittrexWithdrawalParser extends WithdrawalParser {
    }
 
    @Override
-   public Withdrawal parseCsv(String line) throws ParseException {
+   public CryptoRecord parseCsv(String line) throws ParseException {
 
-      Withdrawal wd = new Withdrawal();
+      CryptoRecord wd = new CryptoRecord(RecordType.Withdraw);
       String[] csvs = line.split(",");
 
       String uuid = csvs[0];
@@ -36,11 +36,11 @@ public class BittrexWithdrawalParser extends WithdrawalParser {
       if (cancelled || invalidAddr)
          return null;
 
-      wd.setCoin(coin);
-      wd.setAddress(addr);
-      wd.setAmount(amount);
+      wd.setCoinOrCoinIn(coin);
+      wd.setToAddress(addr);
+      wd.setAmountOrAmountIn(amount);
       wd.setTime(BittrexDateFormat.parse(dateStr).getTime());
-      wd.setTxHash(txHash);
+      wd.setTxId(txHash);
 
       return wd;
    }

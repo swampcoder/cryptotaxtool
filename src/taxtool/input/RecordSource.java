@@ -1,9 +1,11 @@
 package taxtool.input;
 
 import java.io.File;
+import java.io.Serializable;
 
-public class RecordSource {
+public class RecordSource implements Serializable {
 
+   private static final long serialVersionUID = -7402998257396469712L;
    public final File file;
    public final String rawLine;
 

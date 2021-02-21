@@ -44,7 +44,7 @@ public class TradeTableModel extends DataTableModel<Trade> {
       // special block for crowdsale insertions
       if (t.isCrowdsale()) {
          if (c == DATE)
-            return t.date.getTime();
+            return t.getTime();
          else if (c == IN_TYPE)
             return t.getCrowdsale();
          else if (c == IN_AMT)
@@ -56,25 +56,17 @@ public class TradeTableModel extends DataTableModel<Trade> {
       if (c == INDEX)
          return t.getTradeIndex();
       else if (c == DATE) {
-         if (t.date == null) {
-            System.out.println("Null date for=" + t);
-            return null;
-         }
-         return t.date.getTime();
+         return t.getTime();
       } else if (c == IN_TYPE)
-         return t.buyCoin;
+         return t.getCoinOrCoinIn();
       else if (c == IN_AMT)
-         return t.buyAmount;
+         return t.getAmountOrAmountIn();
       else if (c == RATE)
          return 0;
       else if (c == OUT_TYPE)
-         return t.sellCoin;
-      else if (c == OUT_HOLDING) {
-         return t.getSellTotal();
-      } else if (c == IN_HOLDING)
-         return t.getBuyTotal();
+         return t.getCoinOut();
       else if (c == OUT_AMT)
-         return t.sellTotal;
+         return t.getAmountOut();
       else if (c == OUT_RATE)
          return 0;
       else if (c == EXCHANGE)
