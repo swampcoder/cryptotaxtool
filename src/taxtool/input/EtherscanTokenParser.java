@@ -64,6 +64,11 @@ public class EtherscanTokenParser {
       tx.setContract(csvs.get(6));
       tx.setTokenName(csvs.get(7));
       tx.setToken(csvs.get(8));
+      
+      if(PersonalData.getAddrResolver().isETHTokenIgnored(tx.getTokenName(), tx.getTokenSymbol())) 
+      {
+         return null;
+      }
 
       if (tx.isValid() == false)
          return null;

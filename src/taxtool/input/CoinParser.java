@@ -28,6 +28,11 @@ public class CoinParser {
             shutdownHandling();
          }
       });
+      singleRunMutex(); 
+   }
+   
+   private static void singleRunMutex() {
+      // TODO use file to prevent > 1 instance 
    }
 
    private void shutdownHandling() {

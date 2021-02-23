@@ -5,7 +5,7 @@ import taxtool.ui.table.DataTableModel;
 
 public class CoinTotalTableModel extends DataTableModel<CoinTotal> {
 
-   private final static String[] COLS = new String[] { "COIN", "AMOUNT" };
+   private final static String[] COLS = new String[] { "COIN", "AMOUNT", ""};
    private final static int COIN = 0;
    private final static int TOTAL = 1;
 

@@ -23,6 +23,7 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 
 import ctc.enums.Currency;
+import taxtool.input.DataRecord.IDataRecordListener;
 import taxtool.ui.EtherscanTable;
 import taxtool.ui.UIManagerUtils;
 import taxtool.ui.table.DataTable;
@@ -30,7 +31,7 @@ import taxtool.ui.table.DataTableModel;
 import taxtool.ui.table.IDataTableFilter;
 import taxtool.ui.table.IDataTableSelectionListener;
 
-public class MasterRecordTable extends DataTable<CryptoRecord> implements DocumentListener {
+public class MasterRecordTable extends DataTable<CryptoRecord> implements DocumentListener, IDataRecordListener {
 
    private final static IAddressResolver ADDR_RESOLVER = PersonalData.getAddrResolver();
    
@@ -67,7 +68,6 @@ public class MasterRecordTable extends DataTable<CryptoRecord> implements Docume
    private static int TO_ADDR = 18;
    private static int HOLDING_IN =17;
    private static int HOLDING_OUT = 10;
-   private static int GAIN_LOSS = 12;
    private static int TX_HASH = 13;
 
    
@@ -87,14 +87,15 @@ public class MasterRecordTable extends DataTable<CryptoRecord> implements Docume
       this.record = record;
       this.ethTable = ethTable;
       for (CryptoRecord rec : record.getMasterRecords()) {
-         getModel().addRow(rec);
+         if(!isIgnored(rec)) getModel().addRow(rec);
       }
    
       this.setShowGrid(true);
       
       for(RecordType rt : RecordType.values()) 
-      {
-         visibleRecordTypes.add(rt);
+      {  
+         if(rt.visibleByDefault()) 
+            visibleRecordTypes.add(rt);
       }
 
       addListener(new IDataTableSelectionListener<CryptoRecord>() {
@@ -118,6 +119,8 @@ public class MasterRecordTable extends DataTable<CryptoRecord> implements Docume
       setRenderer(HIDE, new DefaultTableCellRenderer());
       
       applyFilters();
+      
+      record.addListener(this);
    }
    
    public void setTableMode(MasterTableMode tableMode) 
@@ -163,6 +166,14 @@ public class MasterRecordTable extends DataTable<CryptoRecord> implements Docume
       if (o instanceof CryptoRecord) {
          CryptoRecord rec = (CryptoRecord) o;
          getModel().addRow(rec);
+      }
+   }
+   
+   @Override
+   public void notifyCalcComplete() {
+      for(int i =0 ; i < getModel().getRowCount(); i++) 
+      {
+         getModel().fireTableCellUpdated(i, GAINLOSS);
       }
    }
 
@@ -262,7 +273,7 @@ public class MasterRecordTable extends DataTable<CryptoRecord> implements Docume
          else
             l.setForeground(UIManagerUtils.labelForeground());
       }
-      else if(column == IN_AMT && value != null) 
+      else if((column == IN_AMT || column == IN_TOT) && value != null) 
       {
          if(rowObj.isInCoinUSD()) 
          {
@@ -274,7 +285,7 @@ public class MasterRecordTable extends DataTable<CryptoRecord> implements Docume
          }
       }
       
-      else if(column == OUT_AMT && value != null) 
+      else if((column == OUT_TOT || column == OUT_AMT) && value != null) 
       {
          if(rowObj.isOutCoinUSD()) 
          {
@@ -388,14 +399,15 @@ public class MasterRecordTable extends DataTable<CryptoRecord> implements Docume
          else if(c == PRICE_USD_OUT) 
          {
             if(o.getCoinOut() == null) return null;
-            return record.getUSDTable().getPriceInUSD(o.getCurrencyOut(), o.getTime()); // , timeOf)
+            return record.getUSDTable().getPrice(o.getCurrencyOut(), Currency.USD, o.getTime(), false); // , timeOf)
          }
          else if(c == PRICE_USD_IN) 
          {
             String coin = o.getTokenSymbol();
             if(coin == null || coin.length() == 0) coin = o.getCoinOrCoinIn();
             Currency currency = Currency.lookup(coin);
-            return record.getUSDTable().getPriceInUSD(currency, o.getTime());
+            System.out.println(o.getRawLine());
+            return record.getUSDTable().getPrice(currency, Currency.USD, o.getTime(), false);
          }
          else if(c == TOT_TRADE_VAL) 
          {
@@ -407,6 +419,14 @@ public class MasterRecordTable extends DataTable<CryptoRecord> implements Docume
          else if(c == OUT_AMT) 
          {
             return getOutAmt(o);
+         }
+         else if(c == OUT_TOT) 
+         {
+            return o.getOutCoinHolding();
+         }
+         else if( c== IN_TOT) 
+         {
+            return o.getInCoinHolding();
          }
          else if (c == RECTYPE)
             return o.getRecordType();
@@ -460,43 +480,7 @@ public class MasterRecordTable extends DataTable<CryptoRecord> implements Docume
    }
 
    private void setupTextFilter() {
-      IDataTableFilter<CryptoRecord> filter = new IDataTableFilter<CryptoRecord>() {
-
-         @Override
-         public boolean isFilteredOut(CryptoRecord t) {
-
-            if(applyIgnoreFilter) 
-            {
-               // some of my eth addresses have spam tokens 
-               if(t instanceof EthereumTx) 
-               {
-                  EthereumTx ethTx = (EthereumTx) t;
-                  if(ADDR_RESOLVER.isETHTokenIgnored(ethTx.getTokenSymbol())) 
-                  {
-                     return true;
-                  }
-               }
-            }
-            if(hiddenYears.contains(t.getRecordYear())) 
-            {
-               return true;
-            }
-            if(!visibleRecordTypes.contains(t.getRecordType()))
-            {
-               return true;
-            }
-            if(applyHiddenFilter && t.getData().isHiddenFromTable()) return true;
-            
-            if (filterText.trim().length() == 0)
-               return false;
-
-            if (t.getCoinOrCoinIn().contains(filterText))
-               return false;
-
-            return false;
-         }
-
-      };
+      
       this.getModel().addFilter(filter);
    }
    
@@ -507,9 +491,52 @@ public class MasterRecordTable extends DataTable<CryptoRecord> implements Docume
          EthereumTx ethTx = (EthereumTx) rec;
          return ethTx.getFrom();
       } 
-      return null;
+      return rec.getFromAddressCS();
    }
    
+   private final IDataTableFilter<CryptoRecord> filter = new IDataTableFilter<CryptoRecord>() {
+
+      @Override
+      public boolean isFilteredOut(CryptoRecord t) {
+
+         if(applyIgnoreFilter) 
+         {
+            if(isIgnored(t)) return true;
+         }
+         if(hiddenYears.contains(t.getRecordYear())) 
+         {
+            return true;
+         }
+         if(!visibleRecordTypes.contains(t.getRecordType()))
+         {
+            return true;
+         }
+         if(applyHiddenFilter && t.getData().isHiddenFromTable()) return true;
+         
+         if (filterText.trim().length() == 0)
+            return false;
+
+         if (t.getCoinOrCoinIn().contains(filterText))
+            return false;
+
+         return false;
+      }
+
+   };
+   
+   private boolean isIgnored(CryptoRecord t) 
+   {
+   // some of my eth addresses have spam tokens 
+      if(t instanceof EthereumTx) 
+      {
+         EthereumTx ethTx = (EthereumTx) t;
+         if(ADDR_RESOLVER.isETHTokenIgnored(ethTx.getTokenSymbol())) 
+         {
+            return true;
+         }
+      }
+      return false;
+   }
    
    private String getToAddr(CryptoRecord rec) 
    {
@@ -518,7 +545,7 @@ public class MasterRecordTable extends DataTable<CryptoRecord> implements Docume
          EthereumTx ethTx = (EthereumTx) rec;
          return ethTx.getTo();
       }
-      return null;
+      else return rec.getToAddressCS();
    }
    
    private Double getInAmt(CryptoRecord record) 
@@ -528,6 +555,10 @@ public class MasterRecordTable extends DataTable<CryptoRecord> implements Docume
          EthereumTx ethTx = (EthereumTx) record;
          if(ethTx.isTokenTx()) return ethTx.getAmountOut();
          else return ethTx.getValueInEth();
+      }
+      else if(record.getRecordType() == RecordType.BtcTx) 
+      {
+         return record.getAmountOrAmountIn();
       }
       else if(record.isTrade())
       {

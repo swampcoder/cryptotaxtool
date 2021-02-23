@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import ctc.calculator.CalculatedTransaction;
+import ctc.calculator.IPriceInterface;
 import ctc.enums.Currency;
 import ctc.enums.TradeType;
 import ctc.transactions.Transaction;
@@ -17,7 +18,9 @@ import ctc.transactions.Transaction;
 public class CryptoRecord implements Comparable<CryptoRecord> {
 
    private final static CryptoRecordNotes DATA = CryptoRecordNotes.get();
-   private final RecordType recordType;
+   private RecordType recordType = null;
+   private boolean isSend = false; // flag for coinbase sends
+   private boolean isRcv = false;  // flag for coinbase receives 
    private RecordSource source = null;
    private int recordIndex = -1;
    private long time = -1L;
@@ -45,6 +48,11 @@ public class CryptoRecord implements Comparable<CryptoRecord> {
    private String addressFrom = null;
    private String addressFromCS = null; // case sensitive version for block explorer inputs (original)
 
+   // totals holding for in/out coins
+   private double inCoinHolding = -1d;
+   private double outCoinHolding = -1d;
+   
+
    // gain loss processing
    private Transaction transaction = null;
    private CalculatedTransaction calcTransation = null;
@@ -54,9 +62,29 @@ public class CryptoRecord implements Comparable<CryptoRecord> {
       this.recordType = recordType;
    }
    
+   public CryptoRecord() {}
+   
    public RecordType getRecordType() 
    {
       return recordType;
+   }
+   
+   public void setSend() { isSend = true; }
+   public void setRcv() { isRcv = true; };
+   
+   public boolean isSend() // coinbase
+   {
+      return isSend;
+   }
+   
+   public boolean isRcv()  // coinbase
+   {
+      return isRcv;
+   }
+   
+   public void setRecordType(RecordType recordType)
+   {
+      this.recordType = recordType;
    }
    
    public CryptoRecordNote getData() 
@@ -194,14 +222,35 @@ public class CryptoRecord implements Comparable<CryptoRecord> {
       this.amountOrAmountIn = amount;
    }
    
+   public void setOutCoinHolding(double amt) 
+   {
+      this.outCoinHolding = amt;
+   }
+   
+   public void setInCoinHolding(double amt) 
+   {
+      this.inCoinHolding = amt;
+   }
+   
+   public double getInCoinHolding() 
+   {
+      return inCoinHolding;
+   }
+   
+   public double getOutCoinHolding() 
+   {
+      return outCoinHolding;
+   }
+   
+   
    public String getTokenSymbol() 
    {
       return null; // overridden in EthereumTx
    }
    
-   public Double getTotalTradeValue(USDTable table) 
+   public Double getTotalTradeValue(IPriceInterface table) 
    {
-      Double outUsdPrice = table.getPriceInUSD(getCurrencyOut(), time);
+      Double outUsdPrice = table.getPrice(getCurrencyOut(), Currency.USD, time, false);
       if(outUsdPrice != null) {
          return outUsdPrice * amountOut;
       }
@@ -418,7 +467,7 @@ public class CryptoRecord implements Comparable<CryptoRecord> {
       
     */
    
-   public Transaction createTransaction() throws IOException 
+   public Transaction createTransaction(DataRecord record) throws IOException 
    {
       if(!this.isTrade()) {
          transaction = null;
@@ -439,30 +488,34 @@ public class CryptoRecord implements Comparable<CryptoRecord> {
          transaction.minor("USD");
          transaction.type(TradeType.BUY);
          transaction.amount(getAmountOrAmountIn());
-         transaction.localRate(this.getBtcPriceInUSD());
+         Double rate = record.getUSDTable().getPrice(Currency.BTC, Currency.USD, time, false);
+         transaction.localRate(rate);
          descStr += "Created USD -> BTC (BUY) @ RATE " + transaction.getLocalRate() + "   Major=" + transaction.getMajor() + "   Minor=" + 
                transaction.getMinor()  + "  Amount=" + transaction.getAmount();
       }
       else if(buyCurrency.isFiat())
       {
-         Thread.dumpStack();
          transaction.major(sellCurrency);
          transaction.minor("USD");
          transaction.type(TradeType.SELL);
-         transaction.localRate(this.getBtcPriceInUSD());
+         //transaction.localRate(this.getBtcPriceInUSD());
+         transaction.localRate(record.getUSDTable().getPrice(Currency.BTC, Currency.USD, time, false));
          transaction.amount(getAmountOut());
          descStr += "Created BTC -> USD (SELL) @ RATE " + transaction.getLocalRate()  + "   Major=" + transaction.getMajor() + "   Minor=" + 
                transaction.getMinor() + "  Amount=" + transaction.getAmount();
       }
       else
       {
-         double btcInUsd = 0d; // USD price of 1 BTC
-         double buyCoinInBtc = 0; // BTC amount in terms of BUY COIN amount 
+         Double sellPriceUSD = record.getUSDTable().getPrice(sellCurrency, Currency.USD, time,false);
+         Double buyPriceUSD = record.getUSDTable().getPrice(buyCurrency, Currency.USD, time,false);
+         transaction.major(buyCurrency);
+         transaction.minor(sellCurrency);
+         transaction.type(TradeType.BUY);
+         transaction.amount(getAmountOrAmountIn());
+         transaction.localRate(buyPriceUSD);
          
-         double sellCoinInBtc = 0; // BTC amount in terms of SELL COIN amount
-         double buyCoinInUsd1 = 0; // USD value of 1 BUY COIN 
-         double sellCoinUsd1 = 0; // USD value of 1 SELL COIN
-         throw new RuntimeException("TODO");
+         descStr += "Created " + buyCurrency.name() +" -> " + sellCurrency.name() + " @ RATE " + transaction.getLocalRate()  + "   Major=" + transaction.getMajor() + "   Minor=" + 
+               transaction.getMinor() + "  Amount=" + transaction.getAmount();
       }
 
       transaction.feeAmount(0);

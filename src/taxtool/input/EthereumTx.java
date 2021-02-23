@@ -154,6 +154,7 @@ public class EthereumTx extends CryptoRecord {
 
    @Override
    public String getTokenSymbol() {
+      if(tokenSymbol == null) return getTokenName(); // Unicorns
       return tokenSymbol;
    }
 

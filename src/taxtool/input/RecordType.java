@@ -8,5 +8,12 @@ public enum RecordType {
    Stake,
    Deposit,
    Withdraw,
-   Crowdsale;
+   Crowdsale,
+   Send,
+   Receive;
+   
+   public boolean visibleByDefault() 
+   {
+      return this != Send && this != Receive;
+   }
 }

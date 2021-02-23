@@ -16,6 +16,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -49,7 +50,7 @@ public class TradePanel extends JPanel {
 
       totalTable = new CoinTotalTable(record);
       JPanel totalPane = new JPanel(new BorderLayout());
-      totalPane.setPreferredSize(new Dimension(250, Integer.MAX_VALUE));
+      totalPane.setPreferredSize(new Dimension(180, Integer.MAX_VALUE));
       totalPane.add(new JScrollPane(totalTable), BorderLayout.CENTER);
 
       JPanel masterPane = new JPanel(new BorderLayout());
@@ -57,15 +58,15 @@ public class TradePanel extends JPanel {
       JTextField masterFilterIn = new JTextField();
 
       masterTable = new MasterRecordTable(frame, masterFilterIn, record, etherscanTable);
-      masterPane.add(new JScrollPane(masterTable), BorderLayout.CENTER);
+      JScrollPane masterJsp = new JScrollPane(masterTable);
+      masterJsp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+      masterPane.add(masterJsp, BorderLayout.CENTER);
       masterFilterIn.getDocument().addDocumentListener(masterTable);
       
       JCheckBox fullscreen = new JCheckBox("Fullscreen");
       fullscreen.addActionListener(new ActionListener() {
-
          @Override
          public void actionPerformed(ActionEvent e) {
-            
             GraphicsEnvironment graphics = GraphicsEnvironment.getLocalGraphicsEnvironment();
             GraphicsDevice device = graphics.getDefaultScreenDevice();
 
@@ -74,12 +75,8 @@ public class TradePanel extends JPanel {
             else
                device.setFullScreenWindow(null);
          }
-      
       });
 
-       
-        
-      
       JPanel filterPane = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 2));
       filterPane.add(fullscreen);
       filterPane.add(Box.createHorizontalStrut(40));
@@ -88,10 +85,26 @@ public class TradePanel extends JPanel {
       
       JButton queryInUsd = new JButton("Query In USD");
       JButton queryOutUsd = new JButton("Query Out USD");
+      JButton runCalc = new JButton("Calculate");
       filterPane.add(Box.createHorizontalStrut(30));
       filterPane.add(queryInUsd);
       filterPane.add(Box.createHorizontalStrut(5));
       filterPane.add(queryOutUsd);
+      filterPane.add(Box.createHorizontalStrut(5));
+      filterPane.add(runCalc);
+      
+      runCalc.addActionListener(new ActionListener() {
+         @Override
+         public void actionPerformed(ActionEvent e) 
+         {
+            try {
+               record.processGains();
+            } catch (IOException e1) {
+               e1.printStackTrace();
+               JOptionPane.showMessageDialog(frame, e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+         }
+      });
       
       queryInUsd.addActionListener(new ActionListener() {
          @Override
@@ -131,7 +144,7 @@ public class TradePanel extends JPanel {
       lowerMaster.add(Box.createHorizontalStrut(30));
       for(RecordType rt : RecordType.values()) 
       {
-         JCheckBox rtBox = new JCheckBox(rt.name(), true);
+         JCheckBox rtBox = new JCheckBox(rt.name(), rt.visibleByDefault());
          lowerMaster.add(rtBox);
          rtBox.addActionListener(new ActionListener() {
             @Override
@@ -164,7 +177,7 @@ public class TradePanel extends JPanel {
       JPanel basisBreakout = new JPanel(new BorderLayout());
       basisBreakout.add(new JScrollPane(basisTable), BorderLayout.CENTER);
       add(basisBreakout, BorderLayout.EAST);
-      basisBreakout.setPreferredSize(new Dimension(250, Integer.MAX_VALUE));
+      basisBreakout.setPreferredSize(new Dimension(180, Integer.MAX_VALUE));
 
       
       leftTabs.addTab("TOTALS", totalPane);
@@ -176,7 +189,7 @@ public class TradePanel extends JPanel {
 
       tradeSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftTabs, tabs);
       add(tradeSplit, BorderLayout.CENTER);
-      tradeSplit.setDividerLocation(300);
+      tradeSplit.setDividerLocation(180);
    }
 
    private void addTradePaneControls(JPanel panel) {

@@ -13,11 +13,14 @@ import java.util.Set;
 
 import ctc.calculator.CalculatedTransaction;
 import ctc.calculator.CalculatedTransactionFile;
+import ctc.calculator.IPriceInterface;
+import ctc.calculator.PriceRef;
+import ctc.enums.Currency;
 import ctc.transactions.Transaction;
 
 public class DataRecord {
 
-   private final static int MAX_INDEX = 250;
+   private final static int MAX_INDEX = 300;
    
    private final static IAddressResolver RESOLVER = PersonalData.getAddrResolver();
 
@@ -27,6 +30,7 @@ public class DataRecord {
 
       default public void notifyAddressOwnshipChange(String address) {
       }
+      default public void notifyCalcComplete() {}
    }
 
    public static class MasterSorter implements Comparator<CryptoRecord> {
@@ -52,7 +56,7 @@ public class DataRecord {
    private final Set<String> exchanges = new HashSet<String>();
 
    // USD Table
-   private final USDTable usdTable;
+   private final IPriceInterface usdTable = PriceRef.get();
    
    private final Set<String> depositTxHashes = new HashSet<String>();
    private final Set<String> withdrawalTxHashes = new HashSet<String>();
@@ -65,10 +69,9 @@ public class DataRecord {
    public DataRecord() throws IOException {
       super();
       listeners = new ArrayList<IDataRecordListener>();
-      usdTable = new USDTable();
    }
    
-   public USDTable getUSDTable() 
+   public IPriceInterface getUSDTable() 
    {
       return usdTable;
    }
@@ -80,12 +83,14 @@ public class DataRecord {
       {
          if(cr.getTime() == 0) continue; // ignore 
          if(cr.isCrowdsale()) continue;// ignore for now
+         if(cr.isSend()) continue; // 
+         if(cr.isRcv()) continue;
          
          if(cr.getIndex() > MAX_INDEX) { // for testing 
             System.out.println("!!!!!!!!!!!!!!!STOPPING AT MAX_INDEX!!!!!!!!!!!!!!!!!!!!!!");
             break;
          }
-         Transaction tx = cr.createTransaction();
+         Transaction tx = cr.createTransaction(this);
          if(tx == null) continue;
          tx.setLinkedObj(cr);
          transactions.add(tx);
@@ -97,6 +102,11 @@ public class DataRecord {
          CalculatedTransaction calcTx  = (CalculatedTransaction) ct;
          CryptoRecord cr = (CryptoRecord) calcTx.getLinkedObject();
          cr.setCalculatedTransaction(calcTx);
+      }
+      
+      for(IDataRecordListener l : listeners) 
+      {
+         l.notifyCalcComplete();
       }
    }
 
@@ -185,6 +195,11 @@ public class DataRecord {
    }
 
    public void initState() throws IOException {
+      
+      Collections.sort(getTrades() );
+      Collections.sort(getWithdrawals());
+      Collections.sort(getFullEthTxList());
+      
       listeners = new ArrayList<IDataRecordListener>();
       if (coinMap != null)
          return; // coinMap.size() > 0) return;
@@ -208,21 +223,22 @@ public class DataRecord {
          withdrawalTxHashes.add(wd.getTxId());
       }
 
-      i = 0;
       for (CryptoRecord depo : deposits) {
          inputAddress(depo.getCoinOrCoinIn(), depo.getToAddressCS(), "DEPOSIT CSV");
-         i++;
          masterRecords.add(depo);
          depositTxHashes.add(depo.getTxId());
       }
 
-      i = 0;
       for (EthereumTx tx : allEthTxs) {
-         tx.setIndex(i);
-         i++;
+         masterRecords.add(tx);
+      }
+      
+      for(BitcoinTx tx : allBitcoinTxs) 
+      {
          masterRecords.add(tx);
       }
 
+      Map<Currency, Double> holdAmounts = new HashMap<Currency, Double>();
       Collections.sort(masterRecords, new MasterSorter());
       i = 0;
       for (CryptoRecord rec : masterRecords) {
@@ -230,6 +246,21 @@ public class DataRecord {
          i++;
          inputRecord(rec);
          
+         // if trade, update in/out totals with trade values
+         if(rec.isTrade()) 
+         {
+            Currency inCoin = rec.getCurrencyOrCurrencyIn();
+            Currency outCoin = rec.getCurrencyOut();
+            Utils.notNull(inCoin, outCoin);
+            double outHolding = holdAmounts.getOrDefault(outCoin, 0d);
+            double inHolding= holdAmounts.getOrDefault(inCoin, 0d);
+            outHolding -= rec.getAmountOut();
+            inHolding += rec.getAmountOrAmountIn();
+            holdAmounts.put(outCoin,outHolding);
+            holdAmounts.put(inCoin, inHolding);
+            rec.setInCoinHolding(inHolding);
+            rec.setOutCoinHolding(outHolding);
+         }
          // print the enum syntax to update the CalcGain tool file
          if(rec.getCoinOut() != null) CoinSet.add(rec.getCoinOut());
          if(rec.getCoinOrCoinIn() != null) CoinSet.add(rec.getCoinOrCoinIn());

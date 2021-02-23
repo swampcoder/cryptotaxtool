@@ -33,23 +33,50 @@ public class USDTable implements IPriceInterface {
       initTable();
    }
    
-   public Double getPriceInUSD(Currency currency, long timeOf) 
+   @Override
+   public Double getPrice(Currency major, Currency minor, long timeOf, boolean queryIfNotFound) 
    {
-      String key = currency.name() + "," + timeOf;
-      return priceInMap.get(key);
+      String key = major.name() + "," + minor.name() + "," + timeOf;
+      Double price =  priceInMap.get(key);
+      //System.out.println("KEY=" + key + "  PRICE=" + price + "   mapSize=" + this.priceInMap.size());
+      if(price == null && queryIfNotFound) 
+      {
+         try {
+            price = findPrice(major.name(), minor.name(), timeOf, true);
+            
+         } catch (IOException e) {
+            e.printStackTrace();
+            price = -1d;
+         }
+      }
+      
+      if(price == null) {
+         priceInMap.put(key, -1d);
+         return -1d;
+      }
+      
+      return price;
    }
 
    public void initTable() throws IOException {
       List<String> lines = Files.readAllLines(USD_FILE.toFile().toPath());
+      /*
+      for(String line : lines) 
+      {
+         String[] parse = line.split(",");
+         String newLine = parse[0] +",USD,"+parse[1]+"," +parse[2]+"\n";
+         Files.write(USD_FILE2, newLine.getBytes(), StandardOpenOption.APPEND,
+               StandardOpenOption.SYNC);
+      }*/
       for (String line : lines) {
          line = line.trim();
          String[] csv = line.split(",");
-         String key = csv[0] + "," + csv[1];
+         String key = csv[0] + "," + csv[1] + "," + csv[2];
 
          try {
-            if (csv[2].contains("E"))
+            if (csv[3].contains("E"))
                continue;
-            Double v = Double.parseDouble(csv[2]);
+            Double v = Double.parseDouble(csv[3]);
             if(v.doubleValue() == 0d) {
                System.out.println("Ignoring 0 USD price for=" + line);
                continue;
@@ -57,34 +84,36 @@ public class USDTable implements IPriceInterface {
             priceInMap.put(key, v);
          } catch (Exception e) {
             // ignore for now
+            e.printStackTrace();
          }
       }
    }
 
-   public Double findPrice(String coin, Long time, boolean queryIfNotFound) throws IOException {
-      if (coin == null)
+   private Double findPrice(String major, String minor, Long time, boolean queryIfNotFound) throws IOException {
+      if (major == null || minor == null)
          return null;
-      else if(coin.equalsIgnoreCase("usd")) return null;
-      
-      String key = coin.trim() + "," + time.toString();
+
+      String key = major.trim() + "," + minor.trim() + "," + time.toString();
       Double value = priceInMap.get(key);
       if (value == null && queryIfNotFound) {
-         value = Utils.queryPriceInUSD(coin, time);
+         value = Utils.queryPrice(major, minor, time);
+         System.out.println("RETRY Major=" + major + " Minor=" + minor + "  is value=" + value);
          Utils.sleep(150); // sleep to prevent rate limit 
          if (value == null || value.doubleValue() == 0d)
          {
             
             // try to find in terms of btc then btc to USD
-            Double btcPrice = Utils.queryPriceInBTC(coin,time);
+            Double btcPrice = Utils.queryPriceInBTC(major,time);
             Double btcUsdPrice = Utils.queryPriceInUSD("BTC", time);
             if(btcPrice != null && btcUsdPrice != null) 
             {
-               System.out.println("Division/Calc COIN=" + coin + "   BTC price=" + btcPrice + "   BTC/USD=" + btcUsdPrice);
+               System.out.println("Division/Calc COIN=" + major + "   BTC price=" + btcPrice + "   BTC/USD=" + btcUsdPrice);
             }
             return null;
          }
          
          String csv = key + "," + df.format(value) + "\n";
+        
          Files.write(USD_FILE.toFile().toPath(), csv.getBytes(), StandardOpenOption.APPEND, StandardOpenOption.CREATE);
          priceInMap.put(key, value);
          System.out.println("wrote=" + csv + "     count=" + priceInMap.size());
