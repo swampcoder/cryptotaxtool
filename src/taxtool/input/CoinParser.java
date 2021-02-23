@@ -1,8 +1,12 @@
 package taxtool.input;
 
 import java.awt.Dimension;
+import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
@@ -13,6 +17,10 @@ import taxtool.ui.TradePanel;
 
 public class CoinParser {
 
+   private final static File MUTEX = new File("mutexes/ " + UUID.randomUUID().toString());
+   static {
+      MUTEX.getParentFile().mkdirs();
+   }
    private final static JFrame txFrame = new JFrame();
 
    public static JFrame frame() {
@@ -20,6 +28,11 @@ public class CoinParser {
    }
 
    public CoinParser() throws IOException, ParseException, ClassNotFoundException {
+      for(File f : MUTEX.getParentFile().listFiles())
+      {
+         f.delete();
+      }
+      MUTEX.createNewFile();
       FlatDarkLaf.install();
       launchUI();
       Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -32,7 +45,15 @@ public class CoinParser {
    }
    
    private static void singleRunMutex() {
-      // TODO use file to prevent > 1 instance 
+      Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
+         @Override
+         public void run() {
+            if(!MUTEX.exists()) 
+            {
+               System.exit(0);
+            }
+         }
+      }, 1000L, 1000, TimeUnit.MILLISECONDS);
    }
 
    private void shutdownHandling() {
